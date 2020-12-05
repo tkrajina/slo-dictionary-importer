@@ -1,3 +1,4 @@
+.PHONY: download
 download:
 	mkdir -p data
 	# Collocations: https://www.clarin.si/repository/xmlui/handle/11356/1250
@@ -9,5 +10,6 @@ download:
 	cd data && wget -c https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1230/Sloleks2.0.LMF.zip
 	cd data && wget -c https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1230/Sloleks2.0.MTE.zip
 
-run:
+.PHONY: build-db
+build-db:
 	go run *go
