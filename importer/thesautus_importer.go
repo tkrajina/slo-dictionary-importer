@@ -85,12 +85,12 @@ func ImportThesaurus(db *sql.DB, tableName string) error {
 
 	for n, entry := range data.Entry {
 		var info [][][]Word
-		group, err := printGroup("Core", entry.GroupsCore.Group)
+		group, err := importGroup("Core", entry.GroupsCore.Group)
 		if err != nil {
 			return err
 		}
 		info = append(info, group)
-		group, err = printGroup("Near", entry.GroupsCore.Group)
+		group, err = importGroup("Near", entry.GroupsNear.Group)
 		if err != nil {
 			return err
 		}
@@ -104,7 +104,7 @@ func ImportThesaurus(db *sql.DB, tableName string) error {
 	return nil
 }
 
-func printGroup(name string, grps []GroupXML) ([][]Word, error) {
+func importGroup(name string, grps []GroupXML) ([][]Word, error) {
 	//fmt.Println("	", name)
 	res := [][]Word{}
 	for n, grp := range grps {
