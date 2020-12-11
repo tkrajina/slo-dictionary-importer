@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"database/sql"
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"sort"
 	"strings"
@@ -74,6 +75,8 @@ func ImportCollocations(db *sql.DB, tableName string) error {
 	}
 	defer r.Close()
 
+	sumFrequencies := 0.0
+	numFrequencies := 0
 	id := -1
 	for _, f := range r.File {
 		if strings.HasSuffix(f.Name, ".xml") {
@@ -103,11 +106,14 @@ func ImportCollocations(db *sql.DB, tableName string) error {
 				for _, collocation := range collocations {
 					//fmt.Println("-", collocation.Frequency, collocation.Form)
 					info[len(info)-1] = append(info[len(info)-1], [2]interface{}{collocation.Frequency, collocation.Form})
+					sumFrequencies += collocation.Frequency
+					numFrequencies++
 				}
 				//fmt.Println()
 			}
 			insert(db, tableName, row{id: id, word: entry.Header.LexicalUnit.Text, info: info})
 		}
 	}
+	fmt.Println("Avg collocation frequency:", sumFrequencies/float64(numFrequencies))
 	return nil
 }
