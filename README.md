@@ -1,0 +1,1 @@
+See <https://github.com/tkrajina/slo-dictionary-app/blob/master/README.md> for more info.
