@@ -9,6 +9,7 @@ download:
 	#cd data && wget -c https://www.clarin.si/repository/xmlui/handle/11356/1230/allzip -O slolex.zip
 	cd data && wget -c https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1230/Sloleks2.0.LMF.zip
 	cd data && wget -c https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1230/Sloleks2.0.MTE.zip
+	#cd data && wget https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1364/GOS1.0-words.zip
 
 .PHONY: build-db
 build-db:
