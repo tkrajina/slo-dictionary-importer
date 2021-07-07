@@ -11,6 +11,10 @@ download:
 	cd data && wget -c https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1230/Sloleks2.0.MTE.zip
 	#cd data && wget https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1364/GOS1.0-words.zip
 
+.PHONY: clean
+clean:
+	rm -v -Rf data/*
+
 .PHONY: build-db
 build-db:
 	go run *go
