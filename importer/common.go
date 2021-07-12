@@ -21,7 +21,7 @@ func insert(db *sql.DB, tableName string, r row) error {
 
 	sql := fmt.Sprintf("insert into %s (id, word, info_json, search_str) values (?, ?, ?, ?)", tableName)
 	vals := []interface{}{r.id, r.word, string(ij), strings.ToLower(r.word)}
-	if r.id%100 == 0 {
+	if r.id%1000 == 0 {
 		fmt.Printf("%d (%s): %#v\n", r.id, tableName, vals)
 	}
 	_, err = db.Exec(sql, vals...)
