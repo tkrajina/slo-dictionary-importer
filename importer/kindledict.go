@@ -1,7 +1,8 @@
-package main
+package importer
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -53,7 +54,12 @@ type dict struct {
 	entries []dictEntry
 }
 
-func main() {
+func ExportOPF() error {
+	f, err := os.Create("kindledict/content.html")
+	if err != nil {
+		return err
+	}
+
 	var dict dict
 	for i := 0; i < 10; i++ {
 		dict.entries = append(dict.entries, dictEntry{
@@ -63,7 +69,7 @@ func main() {
 		})
 	}
 
-	fmt.Println(`<html xmlns:math="http://exslt.org/math" xmlns:svg="http://www.w3.org/2000/svg"
+	_, err = f.WriteString(`<html xmlns:math="http://exslt.org/math" xmlns:svg="http://www.w3.org/2000/svg"
 	xmlns:tl="https://kindlegen.s3.amazonaws.com/AmazonKindlePublishingGuidelines.pdf"
 	xmlns:saxon="http://saxon.sf.net/" xmlns:xs="http://www.w3.org/2001/XMLSchema"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -79,10 +85,18 @@ func main() {
 
 <body>
 	<mbp:frameset>`)
-	for _, w := range dict.entries {
-		fmt.Println(w.toXML())
+	if err != nil {
+		return err
 	}
-	fmt.Println(`</mbp:frameset>
+
+	for _, w := range dict.entries {
+		_, err = f.WriteString(w.toXML())
+		if err != nil {
+			return err
+		}
+	}
+	_, err = f.WriteString(`</mbp:frameset>
 </body>
 </html>`)
+	return err
 }
