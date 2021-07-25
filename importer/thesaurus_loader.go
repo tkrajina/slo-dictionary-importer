@@ -79,12 +79,17 @@ func LoadThesaurus() ([]ThesaurusEntry, error) {
 	}
 
 	var data ThesaurusXML
+	fmt.Println("Unmarshalling thesaurus")
 	err = xml.Unmarshal(byts, &data)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Unmarshalled thesaurus")
 
-	for _, entry := range data.Entries {
+	for n, entry := range data.Entries {
+		if n%1000 == 0 {
+			fmt.Println("Importing", n, "thesaurus")
+		}
 		var info [][][]Word
 		group, err := importGroup("Core", entry.GroupsCore.Group)
 		if err != nil {

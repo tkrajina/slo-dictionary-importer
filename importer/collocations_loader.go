@@ -3,6 +3,7 @@ package importer
 import (
 	"archive/zip"
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"sort"
 	"strings"
@@ -74,8 +75,11 @@ func LoadCollocations() ([]CollocationXMLEntry, error) {
 	defer r.Close()
 
 	var res []CollocationXMLEntry
-	for _, f := range r.File {
+	for n, f := range r.File {
 		if strings.HasSuffix(f.Name, ".xml") {
+			if n%1000 == 0 {
+				fmt.Println("Importing", n, "collocations")
+			}
 			fc, err := f.Open()
 			if err != nil {
 				return nil, err

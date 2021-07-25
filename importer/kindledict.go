@@ -1,9 +1,7 @@
 package importer
 
 import (
-	"fmt"
 	"os"
-	"strings"
 )
 
 const dictHtml = `<html xmlns:math="http://exslt.org/math" xmlns:svg="http://www.w3.org/2000/svg"
@@ -26,47 +24,37 @@ const dictHtml = `<html xmlns:math="http://exslt.org/math" xmlns:svg="http://www
 </body>
 </html>`
 
-type dictEntry struct {
-	word        string
-	inflections []string
-	description string
+type KindleDictEntry struct {
+	Word        string
+	Inflections []string
+	Description string
 }
 
-func (de dictEntry) toXML() string {
+func (de KindleDictEntry) toXML() string {
 	res := `<idx:entry name="english" scriptable="yes" spell="yes">
 	<idx:short>
 		<a id="1"></a>
-		<idx:orth value="` + de.word + `"><b>` + de.word + `</b>
+		<idx:orth value="` + de.Word + `"><strong>` + de.Word + `</strong>
 			<idx:infl>`
-	for _, infl := range de.inflections {
+	for _, infl := range de.Inflections {
 		res += `<idx:iform value="` + infl + `" />`
 	}
 	res += `			</idx:infl>
 		</idx:orth>`
-	res += `<p>first` + de.description + `</p>`
-	res += `<p>second` + de.description + `</p>`
+	res += de.Description
 	res += ` </idx:short>
 </idx:entry>`
 	return res
 }
 
-type dict struct {
-	entries []dictEntry
+type KindleDict struct {
+	Entries []KindleDictEntry
 }
 
-func ExportOPF() error {
+func ExportOPF(dict KindleDict) error {
 	f, err := os.Create("kindledict/content.html")
 	if err != nil {
 		return err
-	}
-
-	var dict dict
-	for i := 0; i < 10; i++ {
-		dict.entries = append(dict.entries, dictEntry{
-			word:        strings.Repeat(fmt.Sprint(i), 5),
-			inflections: []string{"aaa", "bbb", "ccc"},
-			description: "<p>jkljkljdaklfjdskl <strong>kdflsj</strong> fdskl <i>dfsjklf djskl</i></p>",
-		})
 	}
 
 	_, err = f.WriteString(`<html xmlns:math="http://exslt.org/math" xmlns:svg="http://www.w3.org/2000/svg"
@@ -89,7 +77,7 @@ func ExportOPF() error {
 		return err
 	}
 
-	for _, w := range dict.entries {
+	for _, w := range dict.Entries {
 		_, err = f.WriteString(w.toXML())
 		if err != nil {
 			return err
