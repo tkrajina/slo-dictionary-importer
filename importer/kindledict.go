@@ -34,7 +34,7 @@ func (de KindleDictEntry) toXML() string {
 	res := `<idx:entry name="english" scriptable="yes" spell="yes">
 	<idx:short>
 		<a id="1"></a>
-		<idx:orth value="` + de.Word + `"><strong>` + de.Word + `</strong>
+		<idx:orth value="` + de.Word + `"><u>` + de.Word + `</u>
 			<idx:infl>`
 	for _, infl := range de.Inflections {
 		res += `<idx:iform value="` + infl + `" />`
