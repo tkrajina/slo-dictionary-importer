@@ -2,33 +2,34 @@ package importer
 
 import (
 	"archive/zip"
-	"database/sql"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"strconv"
 )
 
+type ThesaurusEntry struct {
+	Text     string `xml:",chardata"`
+	Headword struct {
+		Text string `xml:",chardata"`
+		ID   string `xml:"id,attr"`
+	} `xml:"headword"`
+	GroupsCore struct {
+		Text  string     `xml:",chardata"`
+		Group []GroupXML `xml:"group"`
+	} `xml:"groups_core"`
+	GroupsNear struct {
+		Text  string     `xml:",chardata"`
+		Group []GroupXML `xml:"group"`
+	} `xml:"groups_near"`
+}
+
 type ThesaurusXML struct {
-	XMLName        xml.Name `xml:"base"`
-	Text           string   `xml:",chardata"`
-	Xsi            string   `xml:"xsi,attr"`
-	SchemaLocation string   `xml:"schemaLocation,attr"`
-	Entry          []struct {
-		Text     string `xml:",chardata"`
-		Headword struct {
-			Text string `xml:",chardata"`
-			ID   string `xml:"id,attr"`
-		} `xml:"headword"`
-		GroupsCore struct {
-			Text  string     `xml:",chardata"`
-			Group []GroupXML `xml:"group"`
-		} `xml:"groups_core"`
-		GroupsNear struct {
-			Text  string     `xml:",chardata"`
-			Group []GroupXML `xml:"group"`
-		} `xml:"groups_near"`
-	} `xml:"entry"`
+	XMLName        xml.Name         `xml:"base"`
+	Text           string           `xml:",chardata"`
+	Xsi            string           `xml:"xsi,attr"`
+	SchemaLocation string           `xml:"schemaLocation,attr"`
+	Entries        []ThesaurusEntry `xml:"entry"`
 }
 
 type GroupXML struct {
@@ -51,11 +52,11 @@ type CandidateXML struct {
 
 type Word [2]interface{}
 
-func ImportThesaurus(db *sql.DB, tableName string) error {
+func LoadThesaurus() ([]ThesaurusEntry, error) {
 	// Open a zip archive for reading.
 	r, err := zip.OpenReader("data/CJVT_Thesaurus-v1.0.zip")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer r.Close()
 
@@ -64,44 +65,40 @@ func ImportThesaurus(db *sql.DB, tableName string) error {
 		if f.Name == "CJVT_Thesaurus-v1.0.xml" {
 			fc, err := f.Open()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			byts, err = ioutil.ReadAll(fc)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
 	if len(byts) == 0 {
-		return fmt.Errorf("File not found")
+		return nil, fmt.Errorf("File not found")
 	}
 
 	var data ThesaurusXML
 	err = xml.Unmarshal(byts, &data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for n, entry := range data.Entry {
+	for _, entry := range data.Entries {
 		var info [][][]Word
 		group, err := importGroup("Core", entry.GroupsCore.Group)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		info = append(info, group)
 		group, err = importGroup("Near", entry.GroupsNear.Group)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		info = append(info, group)
-
-		if err := insert(db, tableName, row{id: n, word: entry.Headword.Text, info: info}); err != nil {
-			return err
-		}
 	}
 
-	return nil
+	return data.Entries, nil
 }
 
 func importGroup(name string, grps []GroupXML) ([][]Word, error) {

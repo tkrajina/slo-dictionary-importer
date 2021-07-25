@@ -16,7 +16,12 @@ func panicIfErr(err error) {
 	}
 }
 
-func main() {
+var commands = map[string]func(){
+	"app-db":      BuildAppDb,
+	"kindle-dict": BuildKindleDict,
+}
+
+func BuildAppDb() {
 	dbFile := "dict.sqlite3"
 	_ = os.Remove(dbFile)
 	db, err := sql.Open("sqlite3", dbFile)
@@ -40,6 +45,26 @@ func main() {
 		tn := "collocations"
 		panicIfErr(createTable(db, tn))
 		panicIfErr(importer.ImportCollocations(db, tn))
+	}()
+
+	wg.Wait()
+}
+
+func BuildKindleDict() {
+	var wg sync.WaitGroup
+
+	// Load synonyms
+	// Load collocations
+	// Load slolex
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 	}()
 
 	wg.Wait()
