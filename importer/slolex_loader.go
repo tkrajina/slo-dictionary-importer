@@ -40,6 +40,10 @@ func SlolexLoader() ([]SlolexLexicalEntry, error) {
 			if ty.Name.Local == "LexicalEntry" {
 				count++
 				var loc SlolexLexicalEntry
+				if err := d.DecodeElement(&loc, &ty); err != nil {
+					return nil, err
+				}
+				entries = append(entries, loc)
 				if count%1000 == 0 {
 					fmt.Printf("#%d. %#v\n", count, loc.Lema)
 					//fmt.Printf("  forms: %#v\n", loc.Forms)
@@ -50,8 +54,6 @@ func SlolexLoader() ([]SlolexLexicalEntry, error) {
 		default:
 		}
 	}
-
-	return entries, nil
 }
 
 /*
