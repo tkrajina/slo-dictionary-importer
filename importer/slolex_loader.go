@@ -8,6 +8,23 @@ import (
 )
 
 func SlolexLoader() ([]SlolexLexicalEntry, error) {
+	ch := SlolexLoaderChan()
+	var res []SlolexLexicalEntry
+	for e := range ch {
+		if e.Err != nil {
+			return nil, e.Err
+		}
+		res = append(res, e.Entry)
+	}
+	return res, nil
+}
+
+type SlolexLexicalEntryWithError struct {
+	Entry SlolexLexicalEntry
+	Err   error
+}
+
+func SlolexLoaderChan() <-chan SlolexLexicalEntryWithError {
 	//fn := "tml.xml"
 	fn := "./data/Sloleks2.0.LMF/sloleks_clarin_2.0.xml"
 	// byts, err := ioutil.ReadFile(fn)
@@ -19,41 +36,50 @@ func SlolexLoader() ([]SlolexLexicalEntry, error) {
 
 	// fmt.Println(slolex)
 
-	var entries []SlolexLexicalEntry
+	entries := make(chan SlolexLexicalEntryWithError)
 
 	f, err := os.Open(fn)
 	if err != nil {
-		return nil, err
+		entries <- SlolexLexicalEntryWithError{Err: err}
+		return entries
 	}
-	d := xml.NewDecoder(f)
-	count := 0
-	for {
-		tok, err := d.Token()
-		if tok == nil || err == io.EOF {
-			return entries, nil
-		} else if err != nil {
-			return nil, err
-		}
 
-		switch ty := tok.(type) {
-		case xml.StartElement:
-			if ty.Name.Local == "LexicalEntry" {
-				count++
-				var loc SlolexLexicalEntry
-				if err := d.DecodeElement(&loc, &ty); err != nil {
-					return nil, err
-				}
-				entries = append(entries, loc)
-				if count%1000 == 0 {
-					fmt.Printf("#%d. %#v\n", count, loc.Lema)
-					//fmt.Printf("  forms: %#v\n", loc.Forms)
-					// fmt.Printf("  lema: %s\n", loc.Lema.FindLema())
-					// fmt.Printf("  representations: %v\n", loc.FindFormRepresentations())
-				}
+	go func() {
+		d := xml.NewDecoder(f)
+		count := 0
+		for {
+			tok, err := d.Token()
+			if tok == nil || err == io.EOF {
+				close(entries)
+				return
+			} else if err != nil {
+				entries <- SlolexLexicalEntryWithError{Err: err}
+				return
 			}
-		default:
+
+			switch ty := tok.(type) {
+			case xml.StartElement:
+				if ty.Name.Local == "LexicalEntry" {
+					count++
+					var loc SlolexLexicalEntry
+					if err := d.DecodeElement(&loc, &ty); err != nil {
+						entries <- SlolexLexicalEntryWithError{Err: err}
+						return
+					}
+					entries <- SlolexLexicalEntryWithError{Entry: loc}
+					if count%1000 == 0 {
+						fmt.Printf("#%d. %#v\n", count, loc.Lema)
+						//fmt.Printf("  forms: %#v\n", loc.Forms)
+						// fmt.Printf("  lema: %s\n", loc.Lema.FindLema())
+						// fmt.Printf("  representations: %v\n", loc.FindFormRepresentations())
+					}
+				}
+			default:
+			}
 		}
-	}
+	}()
+
+	return entries
 }
 
 /*

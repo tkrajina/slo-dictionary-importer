@@ -107,13 +107,12 @@ func BuildKindleDict() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		var slolex []importer.SlolexLexicalEntry
-		slolex, err = importer.SlolexLoader()
-		panicIfErr(err)
+		ch := importer.SlolexLoaderChan()
 
-		for _, slolexEntry := range slolex {
-			lema := slolexEntry.Lema.FindLema()
-			slolexByLema[lema] = slolexEntry.FindFormRepresentations()
+		for e := range ch {
+			panicIfErr(e.Err)
+			lema := e.Entry.Lema.FindLema()
+			slolexByLema[lema] = e.Entry.FindFormRepresentations()
 		}
 
 	}()
