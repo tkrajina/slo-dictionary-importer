@@ -124,9 +124,6 @@ func BuildKindleDict() {
 		if n%100 == 0 {
 			fmt.Println("Building kindle dictionary entry #", n)
 		}
-		if n > 1000 {
-			break
-		}
 		synonymsCore := []string{}
 		for _, g := range thesaurusEntry.GroupsCore.Group {
 			for _, g2 := range g.Candidate {
