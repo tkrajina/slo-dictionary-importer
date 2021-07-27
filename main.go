@@ -82,6 +82,7 @@ func BuildKindleDict() {
 		thesaurus    []importer.ThesaurusEntry
 		collocations []importer.CollocationXMLEntry
 		slolex       []importer.SlolexLexicalEntry
+		slolexByLema = map[string][][]string{}
 		err          error
 	)
 
@@ -99,16 +100,23 @@ func BuildKindleDict() {
 	// 	panicIfErr(err)
 	// }()
 
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
-	// 	slolex, err = importer.SlolexLoader()
-	// 	panicIfErr(err)
-	// }()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		slolex, err = importer.SlolexLoader()
+		panicIfErr(err)
+
+		fmt.Println("slolex=", len(slolex))
+		for _, slolexEntry := range slolex {
+			lema := slolexEntry.Lema.FindLema()
+			slolexByLema[lema] = slolexEntry.FindFormRepresentations()
+			fmt.Println(slolexEntry.FindFormRepresentations())
+		}
+
+	}()
 
 	wg.Wait()
 
-	_ = thesaurus
 	_ = collocations
 	_ = slolex
 
@@ -129,13 +137,24 @@ func BuildKindleDict() {
 				synonymsNear = append(synonymsNear, g2.S.Text)
 			}
 		}
-		dict.Entries = append(dict.Entries, importer.KindleDictEntry{
+		entry := importer.KindleDictEntry{
 			Word:        thesaurusEntry.Headword.Text,
 			Description: "<p>" + strings.Join(synonymsCore, "; ") + "</p>" + "<p>" + strings.Join(synonymsNear, "; ") + "</p>",
-		})
+		}
+		if slolexEntry, found := slolexByLema[entry.Word]; found {
+			fmt.Println("inflections:", slolexEntry)
+			for _, g1 := range slolexEntry {
+				for _, inflection := range g1 {
+					entry.Inflections = append(entry.Inflections, inflection)
+				}
+			}
+		}
+		dict.Entries = append(dict.Entries, entry)
 	}
+
 	importer.ExportOPF(dict)
 	fmt.Println("Now open kindledict/slo.opf in Kindle previewer and export the dictionary")
+	fmt.Println(len(slolexByLema))
 }
 
 func createTable(db *sql.DB, tableName string) error {
