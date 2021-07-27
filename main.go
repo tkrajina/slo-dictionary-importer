@@ -165,7 +165,7 @@ func BuildKindleDict() {
 		dict.Entries = append(dict.Entries, entry)
 	}
 
-	importer.ExportOPF(dict)
+	panicIfErr(importer.ExportOPF(dict))
 	fmt.Println("Now open kindledict/slo.opf in Kindle previewer and export the dictionary")
 	fmt.Println(len(slolexByLema))
 }
