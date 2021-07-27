@@ -149,8 +149,14 @@ func BuildKindleDict() {
 			}
 		}
 		if col, found := collocationsByLema[entry.Word]; found {
-			for _, g := range col {
-				for _, collocation := range g {
+			for n, g := range col {
+				if n > 4 {
+					continue
+				}
+				for m, collocation := range g {
+					if m > 4 {
+						continue
+					}
 					entry.Description += "<p>npr. " + collocation + "</p>"
 				}
 			}
