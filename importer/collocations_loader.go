@@ -44,6 +44,29 @@ type CollocationXMLEntry struct {
 	} `xml:"body"`
 }
 
+func (ce CollocationXMLEntry) Word() string {
+	return ce.Header.LexicalUnit.Text
+}
+
+func (ce CollocationXMLEntry) GetFrequentCollocations() [][]string {
+	var frequent [][]string
+	for n, gramrel := range ce.Body.Sense.Gramrels.Gramrel {
+		if n > 5 {
+			continue
+		}
+		frequent = append(frequent, []string{})
+		collocations := gramrel.Collocations.Collocation
+		sort.Sort(collocations)
+		if len(collocations) > 10 {
+			collocations = collocations[0:10]
+		}
+		for _, collocation := range collocations {
+			frequent[len(frequent)-1] = append(frequent[len(frequent)-1], collocation.Form)
+		}
+	}
+	return frequent
+}
+
 type CollocationsXML []CollocationXML
 
 var _ sort.Interface = CollocationsXML(nil)

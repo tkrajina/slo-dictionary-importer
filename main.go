@@ -79,11 +79,12 @@ func BuildKindleDict() {
 	// Load slolex
 
 	var (
-		thesaurus    []importer.ThesaurusEntry
-		collocations []importer.CollocationXMLEntry
-		slolex       []importer.SlolexLexicalEntry
-		slolexByLema = map[string][][]string{}
-		err          error
+		thesaurus          []importer.ThesaurusEntry
+		collocations       []importer.CollocationXMLEntry
+		slolex             []importer.SlolexLexicalEntry
+		slolexByLema       = map[string][][]string{}
+		collocationsByLema = map[string][][]string{}
+		err                error
 	)
 
 	wg.Add(1)
@@ -93,12 +94,16 @@ func BuildKindleDict() {
 		panicIfErr(err)
 	}()
 
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
-	// 	collocations, err = importer.LoadCollocations()
-	// 	panicIfErr(err)
-	// }()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		collocations, err = importer.LoadCollocations()
+		panicIfErr(err)
+
+		for _, col := range collocations {
+			collocationsByLema[col.Word()] = col.GetFrequentCollocations()
+		}
+	}()
 
 	wg.Add(1)
 	go func() {
@@ -106,11 +111,9 @@ func BuildKindleDict() {
 		slolex, err = importer.SlolexLoader()
 		panicIfErr(err)
 
-		fmt.Println("slolex=", len(slolex))
 		for _, slolexEntry := range slolex {
 			lema := slolexEntry.Lema.FindLema()
 			slolexByLema[lema] = slolexEntry.FindFormRepresentations()
-			fmt.Println(slolexEntry.FindFormRepresentations())
 		}
 
 	}()
@@ -122,6 +125,9 @@ func BuildKindleDict() {
 
 	var dict importer.KindleDict
 	for n, thesaurusEntry := range thesaurus {
+		if n%100 == 0 {
+			fmt.Println("Building kindle dictionary entry #", n)
+		}
 		if n > 1000 {
 			break
 		}
@@ -146,6 +152,13 @@ func BuildKindleDict() {
 			for _, g1 := range slolexEntry {
 				for _, inflection := range g1 {
 					entry.Inflections = append(entry.Inflections, inflection)
+				}
+			}
+		}
+		if col, found := collocationsByLema[entry.Word]; found {
+			for _, g := range col {
+				for _, collocation := range g {
+					entry.Description += "<p>npr. " + collocation + "</p>"
 				}
 			}
 		}
