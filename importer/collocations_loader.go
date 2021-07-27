@@ -90,34 +90,59 @@ type CollocationXML struct {
 }
 
 func LoadCollocations() ([]CollocationXMLEntry, error) {
-	// Open a zip archive for reading.
-	r, err := zip.OpenReader("data/KSSS.zip")
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
+	ch := LoadCollocationsChan()
 	var res []CollocationXMLEntry
-	for n, f := range r.File {
-		if strings.HasSuffix(f.Name, ".xml") {
-			if n%1000 == 0 {
-				fmt.Println("Importing", n, "collocations")
-			}
-			fc, err := f.Open()
-			if err != nil {
-				return nil, err
-			}
-			byts, err := ioutil.ReadAll(fc)
-			if err != nil {
-				return nil, err
-			}
-			var entry CollocationXMLEntry
-			if err := xml.Unmarshal(byts, &entry); err != nil {
-				return nil, err
-			}
-			//fmt.Println(entry.Header.Category, entry.Header.LexicalUnit.Text)
-			res = append(res, entry)
+	for e := range ch {
+		if e.Err != nil {
+			return nil, e.Err
 		}
+		res = append(res, e.Entry)
 	}
 	return res, nil
+}
+
+type CollocationEntryWithErr struct {
+	Entry CollocationXMLEntry
+	Err   error
+}
+
+func LoadCollocationsChan() <-chan CollocationEntryWithErr {
+	// Open a zip archive for reading.
+	res := make(chan CollocationEntryWithErr)
+	r, err := zip.OpenReader("data/KSSS.zip")
+	if err != nil {
+		res <- CollocationEntryWithErr{Err: err}
+		return res
+	}
+
+	go func() {
+		for n, f := range r.File {
+			if strings.HasSuffix(f.Name, ".xml") {
+				if n%1000 == 0 {
+					fmt.Println("Importing", n, "collocations")
+				}
+				fc, err := f.Open()
+				if err != nil {
+					res <- CollocationEntryWithErr{Err: err}
+					return
+				}
+				byts, err := ioutil.ReadAll(fc)
+				if err != nil {
+					res <- CollocationEntryWithErr{Err: err}
+					return
+				}
+				var entry CollocationXMLEntry
+				if err := xml.Unmarshal(byts, &entry); err != nil {
+					res <- CollocationEntryWithErr{Err: err}
+					return
+				}
+				//fmt.Println(entry.Header.Category, entry.Header.LexicalUnit.Text)
+				res <- CollocationEntryWithErr{Entry: entry}
+			}
+		}
+		r.Close()
+		close(res)
+	}()
+
+	return res
 }

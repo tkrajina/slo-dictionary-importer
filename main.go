@@ -80,8 +80,6 @@ func BuildKindleDict() {
 
 	var (
 		thesaurus          []importer.ThesaurusEntry
-		collocations       []importer.CollocationXMLEntry
-		slolex             []importer.SlolexLexicalEntry
 		slolexByLema       = map[string][][]string{}
 		collocationsByLema = map[string][][]string{}
 		err                error
@@ -97,17 +95,19 @@ func BuildKindleDict() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		collocations, err = importer.LoadCollocations()
+		ch := importer.LoadCollocationsChan()
 		panicIfErr(err)
 
-		for _, col := range collocations {
-			collocationsByLema[col.Word()] = col.GetFrequentCollocations()
+		for col := range ch {
+			panicIfErr(col.Err)
+			collocationsByLema[col.Entry.Word()] = col.Entry.GetFrequentCollocations()
 		}
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		var slolex []importer.SlolexLexicalEntry
 		slolex, err = importer.SlolexLoader()
 		panicIfErr(err)
 
@@ -119,9 +119,6 @@ func BuildKindleDict() {
 	}()
 
 	wg.Wait()
-
-	_ = collocations
-	_ = slolex
 
 	var dict importer.KindleDict
 	for n, thesaurusEntry := range thesaurus {
