@@ -1,6 +1,8 @@
 package importer
 
 import (
+	"fmt"
+	"html"
 	"os"
 )
 
@@ -25,25 +27,21 @@ const dictHtml = `<html xmlns:math="http://exslt.org/math" xmlns:svg="http://www
 </html>`
 
 type KindleDictEntry struct {
+	ID          int
 	Word        string
 	Inflections []string
 	Description string
 }
 
 func (de KindleDictEntry) toXML() string {
-	res := `<idx:entry name="english" scriptable="yes" spell="yes">
-	<idx:short>
-		<a id="1"></a>
-		<idx:orth value="` + de.Word + `"><u>` + de.Word + `</u>
-			<idx:infl>`
+	res := `<idx:entry name="english" scriptable="yes" spell="yes"><idx:short><a id="` + fmt.Sprint(de.ID) + `"></a><idx:orth value="` + html.EscapeString(de.Word) + `"><u>` + html.EscapeString(de.Word) + `</u><idx:infl>`
 	for _, infl := range de.Inflections {
-		res += `<idx:iform value="` + infl + `" />`
+		res += `<idx:iform value="` + html.EscapeString(infl) + `" />`
 	}
-	res += `			</idx:infl>
-		</idx:orth>`
+	res += `</idx:infl></idx:orth>`
 	res += de.Description
-	res += ` </idx:short>
-</idx:entry>`
+	res += `</idx:short></idx:entry>
+`
 	return res
 }
 

@@ -88,7 +88,7 @@ func LoadThesaurus() ([]ThesaurusEntry, error) {
 
 	for n, entry := range data.Entries {
 		if n%1000 == 0 {
-			fmt.Println("Importing", n, "thesaurus")
+			fmt.Println(n, "thesaurus")
 		}
 		var info [][][]Word
 		group, err := importGroup("Core", entry.GroupsCore.Group)

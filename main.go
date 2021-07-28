@@ -3,11 +3,13 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"html"
 	"log"
 	"os"
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/tkrajina/slo-dictionary-importer/importer"
@@ -79,10 +81,11 @@ func BuildKindleDict() {
 	// Load slolex
 
 	var (
-		thesaurus          []importer.ThesaurusEntry
-		slolexByLema       = map[string][][]string{}
-		collocationsByLema = map[string][][]string{}
-		err                error
+		thesaurus            []importer.ThesaurusEntry
+		slolexByLema         = map[string][][]string{}
+		collocationsByLema   = map[string][][]string{}
+		frequencyOrderByLema = map[string]importer.WordFrequency{}
+		err                  error
 	)
 
 	wg.Add(1)
@@ -114,16 +117,33 @@ func BuildKindleDict() {
 			lema := e.Entry.Lema.FindLema()
 			slolexByLema[lema] = e.Entry.FindFormRepresentations()
 		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ch := importer.LoadFrequencyChan()
+
+		for e := range ch {
+			panicIfErr(e.Err)
+			frequencyOrderByLema[e.Entry.Lemma] = e.Entry
+		}
 
 	}()
 
 	wg.Wait()
 
 	var dict importer.KindleDict
-	for n, thesaurusEntry := range thesaurus {
-		if n%100 == 0 {
-			fmt.Println("Building kindle dictionary entry #", n)
+	for _, thesaurusEntry := range thesaurus {
+		word := thesaurusEntry.Headword.Text
+
+		for _, r := range word {
+			if !unicode.IsLetter(r) {
+				fmt.Println("Contains non-letters:", word)
+				continue
+			}
 		}
+
 		synonymsCore := []string{}
 		for _, g := range thesaurusEntry.GroupsCore.Group {
 			for _, g2 := range g.Candidate {
@@ -137,36 +157,53 @@ func BuildKindleDict() {
 			}
 		}
 		entry := importer.KindleDictEntry{
-			Word:        thesaurusEntry.Headword.Text,
-			Description: "<p>" + strings.Join(synonymsCore, "; ") + "</p>" + "<p>" + strings.Join(synonymsNear, "; ") + "</p>",
+			ID:          1 + len(dict.Entries),
+			Word:        word,
+			Description: "<br/><i>syn.</i> " + html.EscapeString(strings.Join(synonymsCore, "; ")) + "<br/>",
 		}
+		if len(synonymsNear) > 0 {
+			entry.Description += "<i>syn.</i> " + html.EscapeString(strings.Join(synonymsNear, "; ")) + "<br/>"
+		}
+		inflections := map[string]bool{word: true}
 		if slolexEntry, found := slolexByLema[entry.Word]; found {
-			fmt.Println("inflections:", slolexEntry)
+			//fmt.Println("inflections:", slolexEntry)
 			for _, g1 := range slolexEntry {
 				for _, inflection := range g1 {
-					entry.Inflections = append(entry.Inflections, inflection)
+					if _, found := inflections[inflection]; !found {
+						entry.Inflections = append(entry.Inflections, inflection)
+					}
+					inflections[inflection] = true
 				}
 			}
+		} else {
+			fmt.Println("No slolex for", entry.Word, "skipping")
+			continue
 		}
 		if col, found := collocationsByLema[entry.Word]; found {
 			for n, g := range col {
-				if n > 4 {
+				if n >= 2 {
 					continue
 				}
 				for m, collocation := range g {
-					if m > 4 {
+					if m >= 2 {
 						continue
 					}
-					entry.Description += "<p>npr. " + collocation + "</p>"
+					entry.Description += "<i>e.g.</i> " + html.EscapeString(collocation) + "<br/>"
 				}
 			}
 		}
+		if freq, found := frequencyOrderByLema[word]; found {
+			entry.Description += "<i>freq.</i> " + fmt.Sprintf("%.3f", freq.Frequency) + "%<br/>"
+		}
 		dict.Entries = append(dict.Entries, entry)
+		if len(dict.Entries)%100 == 0 {
+			fmt.Println("Building kindle dictionary entry #", len(dict.Entries))
+		}
 	}
 
 	panicIfErr(importer.ExportOPF(dict))
 	fmt.Println("Exported", len(dict.Entries), "entries")
-	fmt.Println("Now open kindledict/slo.opf in Kindle previewer and export the dictionary")
+	fmt.Println("Now open kindledict/slo-thesuarus.opf in Kindle previewer and export the dictionary")
 }
 
 func createTable(db *sql.DB, tableName string) error {

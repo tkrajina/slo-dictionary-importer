@@ -6,3 +6,4 @@ tmp.*
 *.tmp
 # Generated
 kindledict/content.html
+kindledict/*.mobi

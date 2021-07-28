@@ -119,7 +119,7 @@ func LoadCollocationsChan() <-chan CollocationEntryWithErr {
 		for n, f := range r.File {
 			if strings.HasSuffix(f.Name, ".xml") {
 				if n%1000 == 0 {
-					fmt.Println("Importing", n, "collocations")
+					fmt.Println(n, "collocations")
 				}
 				fc, err := f.Open()
 				if err != nil {

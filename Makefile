@@ -23,4 +23,13 @@ clean:
 
 .PHONY: build-db
 build-db:
-	go run *go
+	go run main.go app-db
+
+.PHONY: kindle-dict
+kindle-dict:
+	go run main.go kindle-dict
+
+.PHONY: kindlegen
+kindlegen:
+	# Works on Kindle previewer installed on OSX:
+	"/Applications/Kindle Previewer 3.app/Contents/lib/fc/bin/kindlegen" kindledict/slo-thesaurus.opf -verbose

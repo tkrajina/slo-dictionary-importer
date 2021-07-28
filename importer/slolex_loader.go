@@ -68,7 +68,8 @@ func SlolexLoaderChan() <-chan SlolexLexicalEntryWithError {
 					}
 					entries <- SlolexLexicalEntryWithError{Entry: loc}
 					if count%1000 == 0 {
-						fmt.Printf("#%d. %#v\n", count, loc.Lema)
+						fmt.Println(count, "slolex")
+						//fmt.Printf("#%d. %#v\n", count, loc.Lema)
 						//fmt.Printf("  forms: %#v\n", loc.Forms)
 						// fmt.Printf("  lema: %s\n", loc.Lema.FindLema())
 						// fmt.Printf("  representations: %v\n", loc.FindFormRepresentations())

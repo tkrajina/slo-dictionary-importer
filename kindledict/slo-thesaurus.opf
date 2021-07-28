@@ -1,13 +1,13 @@
 ?xml version="1.0"?>
 <package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId">
   <metadata>
-    <dc:title>A dictionary for Diaspora by Greg Egan</dc:title>
-    <dc:creator opf:role="aut">Jake McCrary</dc:creator>
-    <dc:language>en-us</dc:language>
+    <dc:title>Slovenian Thesaurus</dc:title>
+    <dc:creator opf:role="aut">Tomo Krajina</dc:creator>
+    <dc:language>sl_SI</dc:language>
     <meta name="cover" content="my-cover-image" />
     <x-metadata>
-      <DictionaryInLanguage>en-us</DictionaryInLanguage>
-      <DictionaryOutLanguage>en-us</DictionaryOutLanguage>
+      <DictionaryInLanguage>sl_SI</DictionaryInLanguage>
+      <DictionaryOutLanguage>sl_SI</DictionaryOutLanguage>
       <DefaultLookupIndex>default</DefaultLookupIndex>
     </x-metadata>
   </metadata>
