@@ -165,8 +165,8 @@ func BuildKindleDict() {
 	}
 
 	panicIfErr(importer.ExportOPF(dict))
+	fmt.Println("Exported", len(dict.Entries), "entries")
 	fmt.Println("Now open kindledict/slo.opf in Kindle previewer and export the dictionary")
-	fmt.Println(len(slolexByLema))
 }
 
 func createTable(db *sql.DB, tableName string) error {
