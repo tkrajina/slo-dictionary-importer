@@ -2,12 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	"html"
+	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"sort"
-	"strings"
+	"strconv"
 	"sync"
 	"unicode"
 
@@ -22,8 +24,9 @@ func panicIfErr(err error) {
 }
 
 var commands = map[string]func(){
-	"app-db":      BuildAppDb,
-	"kindle-dict": BuildKindleDict,
+	"app-db":              BuildAppDb,
+	"kindle-dict":         BuildKindleDict,
+	"rebuild-kindle-dict": ExportOPF,
 }
 
 func main() {
@@ -134,35 +137,40 @@ func BuildKindleDict() {
 	wg.Wait()
 
 	var dict importer.KindleDict
+thesurus_loop:
 	for _, thesaurusEntry := range thesaurus {
 		word := thesaurusEntry.Headword.Text
 
 		for _, r := range word {
-			if !unicode.IsLetter(r) {
+			if !unicode.IsLetter(r) || unicode.IsSpace(r) {
 				fmt.Println("Contains non-letters:", word)
-				continue
+				continue thesurus_loop
 			}
 		}
 
-		synonymsCore := []string{}
+		synonymsCore := []importer.KindleDictSynonym{}
 		for _, g := range thesaurusEntry.GroupsCore.Group {
 			for _, g2 := range g.Candidate {
-				synonymsCore = append(synonymsCore, g2.S.Text)
+				score, err := strconv.ParseFloat(g2.Score, 64)
+				panicIfErr(err)
+				synonymsCore = append(synonymsCore, importer.KindleDictSynonym{Word: g2.S.Text, Score: score})
 			}
 		}
-		synonymsNear := []string{}
+		synonymsNear := []importer.KindleDictSynonym{}
 		for _, g := range thesaurusEntry.GroupsNear.Group {
 			for _, g2 := range g.Candidate {
-				synonymsNear = append(synonymsNear, g2.S.Text)
+				score, err := strconv.ParseFloat(g2.Score, 64)
+				panicIfErr(err)
+				synonymsNear = append(synonymsNear, importer.KindleDictSynonym{Word: g2.S.Text, Score: score})
 			}
 		}
 		entry := importer.KindleDictEntry{
-			ID:          1 + len(dict.Entries),
-			Word:        word,
-			Description: "<br/><i>syn.</i> " + html.EscapeString(strings.Join(synonymsCore, "; ")) + "<br/>",
+			ID:       1 + len(dict.Entries),
+			Word:     word,
+			Synonyms: [][]importer.KindleDictSynonym{synonymsCore, synonymsNear},
 		}
-		if len(synonymsNear) > 0 {
-			entry.Description += "<i>syn.</i> " + html.EscapeString(strings.Join(synonymsNear, "; ")) + "<br/>"
+		if len(synonymsCore) == 0 && len(synonymsNear) == 0 {
+			continue thesurus_loop
 		}
 		inflections := map[string]bool{word: true}
 		if slolexEntry, found := slolexByLema[entry.Word]; found {
@@ -177,28 +185,48 @@ func BuildKindleDict() {
 			}
 		} else {
 			fmt.Println("No slolex for", entry.Word, "skipping")
-			continue
+			//continue
 		}
 		if col, found := collocationsByLema[entry.Word]; found {
-			for n, g := range col {
-				if n >= 2 {
-					continue
-				}
-				for m, collocation := range g {
-					if m >= 2 {
-						continue
-					}
-					entry.Description += "<i>e.g.</i> " + html.EscapeString(collocation) + "<br/>"
-				}
-			}
+			entry.Collocations = col
 		}
 		if freq, found := frequencyOrderByLema[word]; found {
-			entry.Description += "<i>freq.</i> " + fmt.Sprintf("%.3f", freq.Frequency) + "%<br/>"
+			entry.Frequency = fmt.Sprintf("%.3f", freq.Frequency) + "%"
 		}
 		dict.Entries = append(dict.Entries, entry)
 		if len(dict.Entries)%100 == 0 {
 			fmt.Println("Building kindle dictionary entry #", len(dict.Entries))
 		}
+	}
+
+	byts, err := json.Marshal(dict)
+	panicIfErr(err)
+
+	err = ioutil.WriteFile(kindleDictJson, byts, 0700)
+	panicIfErr(err)
+
+	ExportOPF()
+}
+
+const kindleDictJson = "kindledict/slo.json"
+
+func ExportOPF() {
+	max := math.MaxInt64
+	if len(os.Args) >= 3 {
+		m, err := strconv.ParseInt(os.Args[2], 10, 64)
+		panicIfErr(err)
+		max = int(m)
+	}
+	fmt.Println("max=", max)
+
+	byts, err := ioutil.ReadFile(kindleDictJson)
+	panicIfErr(err)
+
+	var dict importer.KindleDict
+	panicIfErr(json.Unmarshal(byts, &dict))
+
+	if max < len(dict.Entries) {
+		dict.Entries = dict.Entries[0:max]
 	}
 
 	panicIfErr(importer.ExportOPF(dict))
