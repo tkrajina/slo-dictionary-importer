@@ -13,6 +13,11 @@ type KindleDictSynonym struct {
 	Score float64 `json:"score"`
 }
 
+func (kds KindleDictSynonym) FormatScore() string {
+	ch := []rune("▁▂▃▄▅▆▇█")
+	return string(ch[int(math.Round(kds.Score*float64(len(ch))))])
+}
+
 func (kds KindleDictSynonym) ScoreNormalized() float64 {
 	return math.Max(0.0, math.Min(0.99, kds.Score/0.4))
 }
@@ -39,7 +44,7 @@ func (de KindleDictEntry) toXML() string {
 
 	for _, syns := range de.Synonyms {
 		for _, syn := range syns {
-			synonyms = append(synonyms, "<i>syn.</i> "+html.EscapeString(syn.Word)) // TODO
+			synonyms = append(synonyms, "<span class='score'>"+syn.FormatScore()+"</span> <i>syn.</i>  "+html.EscapeString(syn.Word)) // TODO
 		}
 	}
 col_loop:
@@ -102,6 +107,12 @@ func ExportOPF(dict KindleDict) error {
 	}
 	p {
 		margin: 0 0 0.6em 0.5em;
+		padding: 0;
+	}
+	.score {
+		width: 0.5em;
+		height: 0.5em;
+		border: 1px solid #ddd;
 		padding: 0;
 	}
 	</style>
