@@ -1,3 +1,7 @@
+.PHONY: build
+build:
+	go build ./...
+
 .PHONY: download
 download:
 	mkdir -p data
