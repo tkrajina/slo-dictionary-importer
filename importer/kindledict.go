@@ -44,7 +44,7 @@ func (de KindleDictEntry) toXML() string {
 
 	for _, syns := range de.Synonyms {
 		for _, syn := range syns {
-			synonyms = append(synonyms, "<span class='score'>"+syn.FormatScore()+"</span> <i>syn.</i>  "+html.EscapeString(syn.Word)) // TODO
+			synonyms = append(synonyms, "<span class='score'>"+syn.FormatScore()+"</span> "+html.EscapeString(syn.Word)) // TODO
 		}
 	}
 col_loop:
